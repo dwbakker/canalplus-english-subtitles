@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "English Subtitles for CANAL+",
+  "version": "0.5.0",
+  "description": "Translates CANAL+ French subtitles into English with Claude and shows them in sync with the video.",
+  "permissions": ["storage", "unlimitedStorage"],
+  "host_permissions": [
+    "*://*.canalplus.com/*",
+    "*://*.akamaized.net/*",
+    "*://*.canalplus-bo.net/*",
+    "https://api.anthropic.com/*"
+  ],
+  "background": { "scripts": ["background.js"] },
+  "content_scripts": [
+    {
+      "matches": ["*://*.canalplus.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle",
+      "all_frames": true
+    }
+  ],
+  "action": { "default_popup": "popup.html", "default_title": "English Subtitles for CANAL+" }
+}

@@ -1,0 +1,53 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  :root { color-scheme: light dark; }
+  body { font: 13px -apple-system, system-ui, sans-serif; width: 300px; margin: 14px; }
+  h1 { font-size: 15px; margin: 0 0 12px; }
+  label { display: block; margin: 10px 0 4px; font-weight: 600; }
+  input[type=password], select { width: 100%; box-sizing: border-box; padding: 5px; }
+  .row { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+  .row label { margin: 0; font-weight: 400; }
+  small { color: GrayText; display: block; margin-top: 3px; }
+  button { margin-top: 12px; }
+  #msg { margin-top: 8px; min-height: 1em; }
+</style>
+</head>
+<body>
+  <h1>English Subtitles for CANAL+</h1>
+  <div class="row"><input type="checkbox" id="enabled"><label for="enabled">Enabled</label></div>
+
+  <label for="apiKey">Anthropic API key</label>
+  <input type="password" id="apiKey" placeholder="sk-ant-…" autocomplete="off">
+  <small>Stored only in this browser's extension storage.</small>
+
+  <label for="model">Model</label>
+  <select id="model">
+    <option value="claude-opus-5-5">Claude Opus 5.5 (best quality)</option>
+    <option value="claude-sonnet-5-5">Claude Sonnet 5.5</option>
+    <option value="claude-haiku-5-5">Claude Haiku 5.5 (cheapest, fastest)</option>
+  </select>
+
+  <label for="display">Display</label>
+  <select id="display">
+    <option value="track">English only (works in fullscreen)</option>
+    <option value="track-dual">French + English (works in fullscreen)</option>
+    <option value="overlay">French + English overlay (custom style, not in native fullscreen)</option>
+  </select>
+
+  <label for="source">French subtitles to translate</label>
+  <select id="source">
+    <option value="auto">Automatic (most complete track)</option>
+    <option value="standard">French</option>
+    <option value="sdh">French for deaf &amp; hard of hearing (DST/SME)</option>
+  </select>
+  <small>Some series' "French" track only covers dialogue that isn't in French; the DST track has everything.</small>
+
+  <button id="save">Save key</button>
+  <button id="clear">Clear translation cache</button>
+  <div id="msg"></div>
+  <script src="popup.js"></script>
+</body>
+</html>

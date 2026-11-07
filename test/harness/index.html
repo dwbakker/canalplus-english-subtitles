@@ -1,0 +1,41 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>canal-subs harness</title>
+<style>body{background:#111;color:#ddd;font:14px system-ui;margin:16px} #player{position:relative;width:640px}</style>
+<div id="player"><video id="v" src="clip.mp4" controls muted width="640"><track kind="subtitles" srclang="fr" label="Français" src="fr.vtt" default></video></div>
+<pre id="log"></pre>
+<script>
+// Fake WebExtension API: in-memory storage + mock translator.
+const store = { apiKey: 'test', enabled: true, display: new URLSearchParams(location.search).get('display') || 'track' };
+const listeners = [];
+// What the background would have downloaded: same lines as fr.vtt but file times are +5 s,
+// plus a line Safari never hands over (simulates cues missing after a seek).
+const EPISODE = [
+  { start: 6, end: 9, fr: 'Bonjour, tu as bien dormi ?' },
+  { start: 9.5, end: 13, fr: '- Pas vraiment.\n- Pourquoi ?' },
+  { start: 14, end: 18, fr: 'Le voisin a fait la fête\ntoute la nuit.' },
+  { start: 19, end: 25, fr: 'On devrait appeler la police.' },
+  { start: 27, end: 31, fr: 'Seulement dans le fichier.' },
+];
+if (new URLSearchParams(location.search).has('hls')) document.addEventListener('DOMContentLoaded', () => { document.getElementById('v').src = 'clip.mp4?fake=.m3u8'; });
+window.__calls = [];
+window.browser = {
+  storage: {
+    local: {
+      async get(keys) { return Object.fromEntries((keys || Object.keys(store)).filter(k => k in store).map(k => [k, store[k]])); },
+      async set(o) { Object.assign(store, o); const ch = Object.fromEntries(Object.keys(o).map(k => [k, { newValue: o[k] }])); listeners.forEach(l => l(ch, 'local')); },
+    },
+    onChanged: { addListener: l => listeners.push(l) },
+  },
+  runtime: {
+    async sendMessage(msg) {
+      window.__calls.push(msg);
+      await new Promise(r => setTimeout(r, 300));
+      if (msg.type === 'prefetch') return { state: 'done', total: EPISODE.length, done: EPISODE.length };
+      if (msg.type === 'episodeCues') return { total: EPISODE.length, cues: EPISODE.map(c => ({ ...c, en: 'EN: ' + c.fr })) };
+      return { ok: true, translations: Object.fromEntries(msg.items.map(i => [i.id, 'EN: ' + i.fr])) };
+    },
+  },
+};
+</script>
+<script src="../../dist/content.js"></script>
