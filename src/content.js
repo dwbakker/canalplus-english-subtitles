@@ -202,6 +202,16 @@ function addOurCue(track, c) {
 }
 
 
+// Dual mode: English line smaller and a bit dimmer than the French. (Safari's own caption
+// style settings in System Settings > Accessibility can override this.)
+function injectCueStyle() {
+  if (document.getElementById('canal-subs-cue-style')) return;
+  const st = document.createElement('style');
+  st.id = 'canal-subs-cue-style';
+  st.textContent = 'video::cue(.en) { font-size: 80%; color: #e6e6e6; }';
+  (document.head || document.documentElement).appendChild(st);
+}
+
 function tick() {
   const v = findVideo();
   if (v !== video || (v && v.currentSrc && v.currentSrc !== videoSrc)) resetFor(v);
@@ -410,6 +420,7 @@ function renderOverlay() {
 // ---------- boot ----------
 document.addEventListener('fullscreenchange', () => ensureOverlay());
 document.addEventListener('webkitfullscreenchange', () => ensureOverlay());
+injectCueStyle();
 loadSettings().then(() => {
   setInterval(tick, 500);
   requestAnimationFrame(renderOverlay);

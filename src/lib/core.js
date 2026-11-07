@@ -109,12 +109,15 @@ export function escapeCueText(s) {
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-/** Text for our native track cue. 'dual' = French on top, English below in italics. */
+/** Join a subtitle's lines into one (CANAL+ wraps at ~40 chars; the player re-wraps if needed). */
+export const oneLine = t => String(t).split('\n').map(l => l.trim()).filter(Boolean).join(' ');
+
+/**
+ * Text for our native track cue. 'track-dual' = French on one line, English below it on one
+ * line in italics (styled smaller via ::cue(.en)), so two rows instead of four.
+ */
 export function buildCueText(fr, en, display) {
-  if (display === 'track-dual') {
-    const it = escapeCueText(en).split('\n').map(l => `<i>${l}</i>`).join('\n');
-    return `${escapeCueText(fr)}\n${it}`;
-  }
+  if (display === 'track-dual') return `${escapeCueText(oneLine(fr))}\n<c.en><i>${escapeCueText(oneLine(en))}</i></c.en>`;
   return escapeCueText(en);
 }
 

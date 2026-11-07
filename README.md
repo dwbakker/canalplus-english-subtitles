@@ -40,7 +40,7 @@ Safari removes temporary extensions when it quits, or after 24 hours. Re-add the
 | Setting | Options |
 |---|---|
 | Model | Opus 5.5 (best), Sonnet 5.5, Haiku 5.5 (cheapest). The cache is per model. |
-| Display | **English only** · **French + English** (French on top, English in italics) · **Overlay** (both lines drawn over the page; doesn't show in Safari's native fullscreen) |
+| Display | **English only** · **French + English** (two rows: French on one line, English below it smaller, in italics) · **Overlay** (both lines drawn over the page; doesn't show in Safari's native fullscreen) |
 | French subtitles to translate | **Automatic** (most complete track) · French · French for deaf & hard of hearing |
 
 The CANAL+ menu works as the switch:

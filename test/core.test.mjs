@@ -113,7 +113,8 @@ test('prefetchOrder starts near the playhead and wraps', () => {
 import { buildCueText } from '../src/lib/core.js';
 test('buildCueText escapes and builds dual cues', () => {
   assert.equal(buildCueText('Tom & Jerry', 'Tom & <Jerry>', 'track'), 'Tom &amp; &lt;Jerry&gt;');
-  assert.equal(buildCueText('Salut\ntoi', 'Hi\nyou', 'track-dual'), 'Salut\ntoi\n<i>Hi</i>\n<i>you</i>');
+  assert.equal(buildCueText('Salut\ntoi', 'Hi\nyou', 'track-dual'), 'Salut toi\n<c.en><i>Hi you</i></c.en>');
+  assert.equal(buildCueText('- Pas vraiment.\n- Pourquoi ?', '- Not really.\n- Why?', 'track-dual'), '- Pas vraiment. - Pourquoi ?\n<c.en><i>- Not really. - Why?</i></c.en>');
 });
 
 import { computeOffset } from '../src/lib/core.js';
