@@ -21,7 +21,7 @@ A Safari Web Extension that translates the French subtitles of CANAL+ shows into
 
 ## Install (temporary extension, no Xcode)
 ```bash
-git clone <this repo> && cd canalplus-english-subtitles
+git clone https://github.com/dwbakker/canalplus-english-subtitles.git && cd canalplus-english-subtitles
 npm install
 npm run build        # outputs the unpacked extension to dist/
 ```
