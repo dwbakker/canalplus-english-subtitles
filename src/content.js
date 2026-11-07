@@ -212,7 +212,45 @@ function injectCueStyle() {
   (document.head || document.documentElement).appendChild(st);
 }
 
+// Only one copy of this content script may drive a page. Two can run at once when an old and a
+// new copy of the extension are both installed, or after re-adding it without reloading the tab;
+// each would add its own "English (auto)" track and every line would show twice. The active copy
+// keeps a heartbeat on <html>; any other copy stands down while that heartbeat is fresh.
+const INSTANCE = Math.random().toString(36).slice(2, 10);
+let standingDown = false;
+function claimPage() {
+  const el = document.documentElement;
+  const [owner, ts] = (el.dataset.canalSubsOwner || '').split(':');
+  if (owner && owner !== INSTANCE && Date.now() - Number(ts) < 3000) return false;
+  el.dataset.canalSubsOwner = `${INSTANCE}:${Date.now()}`;
+  return true;
+}
+
+function standDown() {
+  if (standingDown) return;
+  standingDown = true;
+  LOG('another copy of the extension is active on this page; standing down');
+  const t = video && ourTracks.get(video);
+  setMode(t, 'disabled');
+  overlay?.root.remove();
+  overlay = null;
+}
+
+/** Switch off "English (auto)" tracks that aren't ours (left by another or an older copy). */
+function disableForeignTracks() {
+  const mine = ourTracks.get(video);
+  for (const t of video.textTracks) {
+    if (t !== mine && t.label === OUR_TRACK_LABEL && t.mode !== 'disabled') t.mode = 'disabled';
+  }
+}
+
 function tick() {
+  if (!claimPage()) return standDown();
+  if (standingDown) {
+    standingDown = false;
+    lastModes = null;
+    LOG('taking over as the active copy');
+  }
   const v = findVideo();
   if (v !== video || (v && v.currentSrc && v.currentSrc !== videoSrc)) resetFor(v);
   if (!video || !settings.enabled) return;
@@ -224,6 +262,7 @@ function tick() {
     LOG('source track', t && { label: t.label, lang: t.language, kind: t.kind, mode: t.mode });
   }
   if (!srcTrack) return;
+  disableForeignTracks();
   applyDisplay();
   pollPrefetch();
   refreshTimeline();
