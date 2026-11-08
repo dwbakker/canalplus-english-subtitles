@@ -76,6 +76,7 @@ function resetFor(newVideo) {
   resetTimeline(false);
   const t = video && ourTracks.get(video);
   if (t) for (const c of [...(t.cues || [])]) t.removeCue(c); // our cues belong to the old episode
+  keptCues = [];
   renderedDisplay = null;
 }
 
@@ -149,18 +150,28 @@ let renderedDisplay = null;
 function rebuildTrack() {
   const t = ourTrack();
   if (!t) return;
-  for (const c of [...(t.cues || [])]) t.removeCue(c);
+  // Safari can leave a cue's text drawn when the cue is removed while on screen, and those
+  // leftovers pile up. So cues on screen stay (only their text is updated); the rest are replaced.
+  const active = t.activeCues ? [...t.activeCues] : [];
+  for (const c of [...(t.cues || [])]) if (!active.includes(c)) t.removeCue(c);
+  for (const c of active) if (c.fr != null) c.text = buildCueText(c.fr, c.en, settings.display);
+  keptCues = active;
   timelineAdded = new Set();
   if (inTimeline()) addTimelineCues(t);
   else for (const c of cues.values()) if (c.en != null) addOurCue(t, c);
   renderedDisplay = settings.display;
 }
 
+// A new cue that overlaps a cue kept on screen would show the same line twice.
+let keptCues = [];
+const overlapsKept = c => keptCues.some(k => c.start < k.endTime && c.end > k.startTime);
+
 function addTimelineCues(t) {
   episode.forEach((c, i) => {
     if (c.en == null || timelineAdded.has(i)) return;
     timelineAdded.add(i);
-    addOurCue(t, { start: c.start + offset, end: c.end + offset, fr: c.fr, en: c.en });
+    const shifted = { start: c.start + offset, end: c.end + offset, fr: c.fr, en: c.en };
+    if (!overlapsKept(shifted)) addOurCue(t, shifted);
   });
 }
 
@@ -182,8 +193,10 @@ async function refreshTimeline() {
   episode = res.cues;
   if (st === 'done' && episode.every(c => c.en != null)) timelineComplete = true;
   const cal = computeOffset([...cues.values()], episode);
-  const offsetChanged = cal.matches > 0 && Math.abs(cal.offset - offset) > 0.08;
-  if (cal.matches > 0) offset = cal.offset;
+  // The French track Safari exposes and the downloaded one can be timed independently, so the
+  // estimate wobbles a little; only a real shift is worth rebuilding the track for.
+  const offsetChanged = cal.matches > 0 && Math.abs(cal.offset - offset) > 0.3;
+  if (offsetChanged) offset = cal.offset;
   offsetMatches = cal.matches;
   if (!wasTimeline || offsetChanged) {
     LOG('timeline', { cues: episode.length, offset, matches: offsetMatches });
@@ -195,7 +208,11 @@ async function refreshTimeline() {
 
 function addOurCue(track, c) {
   try {
-    track.addCue(new VTTCue(c.start, c.end, buildCueText(c.fr, c.en, settings.display)));
+    if (overlapsKept(c)) return;
+    const cue = new VTTCue(c.start, c.end, buildCueText(c.fr, c.en, settings.display));
+    cue.fr = c.fr;
+    cue.en = c.en;
+    track.addCue(cue);
   } catch (e) {
     LOG('addCue failed', e);
   }
