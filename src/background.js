@@ -7,14 +7,18 @@ const api = globalThis.browser ?? globalThis.chrome;
 export const DEFAULTS = {
   enabled: true,
   apiKey: '',
-  model: 'claude-opus-5-5',
+  model: 'claude-haiku-5-5', // 'apple' = Apple's on-device translator
   display: 'track', // 'track' (English) | 'track-dual' (French + English)
 };
 
 async function settings() {
-  const s = await api.storage.local.get(Object.keys(DEFAULTS));
-  return { ...DEFAULTS, ...s };
+  const s = { ...DEFAULTS, ...(await api.storage.local.get(Object.keys(DEFAULTS))) };
+  // Haiku is plenty for subtitles; older saved choices (Opus, Sonnet) map to it.
+  if (s.model !== APPLE) s.model = CLAUDE_MODEL;
+  return s;
 }
+
+const CLAUDE_MODEL = 'claude-haiku-5-5';
 
 const SYSTEM = `You translate French TV/film subtitles into natural, idiomatic English subtitles.
 Rules:

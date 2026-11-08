@@ -19,7 +19,7 @@ A Safari Web Extension that translates the French subtitles of CANAL+ shows into
 - macOS 26 or later with Safari 26 or later, Node.js 18 or later, and a CANAL+ subscription.
 - For the Mac app (permanent install, free Apple translator): Xcode, with your Apple ID added. A free account works.
 - For Claude: an **Anthropic API key** from [console.anthropic.com](https://console.anthropic.com). API usage is prepaid and separate from a claude.ai subscription.
-  - Rough cost per 50-minute episode: Opus 5.5 about $0.30–0.60, Haiku 5.5 about $0.01.
+  - The extension uses Claude Haiku 5.5: about $0.01 per 50-minute episode.
 
 ## Install
 ```bash
@@ -39,6 +39,8 @@ npm install
    - download French and English for Apple's translator (once, about 100 MB).
 4. In the extension's popup, choose **Apple** or **Claude**. On CANAL+, pick **"Anglais"** in the "Langues et sous-titres" menu.
 
+After installing or updating the app, quit and reopen Safari; until then the extension's background part may not start and nothing gets translated.
+
 To update, pull and run `apple/build.sh` again.
 
 ### Option B: temporary extension (no Xcode, Claude only)
@@ -54,7 +56,7 @@ Safari removes temporary extensions when it quits, or after 24 hours. Re-add the
 ## Settings
 | Setting | Options |
 |---|---|
-| Translator | **Claude** (Opus 5.5 best, Sonnet 5.5, Haiku 5.5 cheapest) · **Apple** (free, on-device; Mac app only). The cache is per translator and model. |
+| Translator | **Claude** (Haiku 5.5, about $0.01 an episode) · **Apple** (free, on-device; Mac app only). The cache is per translator. |
 | Show | **English** · **FR + EN** (two rows: French on one line, English below it smaller, in italics) |
 | From French subtitles | **Automatic** (most complete track) · Standard · Deaf & HoH |
 

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "English Subtitles for CANAL+",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "description": "Translates CANAL+ French subtitles into English, with Claude or Apple's on-device translator, in sync with the video.",
   "icons": { "16": "icon-16.png", "32": "icon-32.png", "48": "icon-48.png", "64": "icon-64.png", "96": "icon-96.png", "128": "icon-128.png", "256": "icon-256.png", "512": "icon-512.png" },
   "permissions": ["storage", "unlimitedStorage", "nativeMessaging"],

@@ -1,7 +1,7 @@
 const api = globalThis.browser ?? globalThis.chrome;
 const $ = id => document.getElementById(id);
 const APPLE = 'apple';
-const DEFAULT_CLAUDE = 'claude-opus-5-5';
+const CLAUDE_MODEL = 'claude-haiku-5-5';
 
 let msgTimer;
 function say(text) {
@@ -37,9 +37,7 @@ for (const [key, el] of Object.entries(segs)) {
     const v = setSeg(key, b.dataset.v);
     if (key === 'provider') {
       showProvider(v);
-      await api.storage.local.set({ model: v === APPLE ? APPLE : segValue('claudeModel') });
-    } else if (key === 'claudeModel') {
-      await api.storage.local.set({ model: v, claudeModel: v });
+      await api.storage.local.set({ model: v === APPLE ? APPLE : CLAUDE_MODEL });
     } else {
       await api.storage.local.set({ [key]: v });
     }
@@ -49,17 +47,14 @@ for (const [key, el] of Object.entries(segs)) {
 
 // ---------- load ----------
 (async () => {
-  const s = await api.storage.local.get(['enabled', 'apiKey', 'model', 'claudeModel', 'display', 'source']);
-  const model = s.model ?? DEFAULT_CLAUDE;
-  const claudeModel = model !== APPLE ? model : (s.claudeModel ?? DEFAULT_CLAUDE);
-  const provider = model === APPLE ? APPLE : 'claude';
+  const s = await api.storage.local.get(['enabled', 'apiKey', 'model', 'display', 'source']);
+  const provider = s.model === APPLE ? APPLE : 'claude';
   $('enabled').checked = s.enabled ?? true;
   if (s.apiKey) $('apiKey').placeholder = 'Key saved (paste to replace)';
   setSeg('provider', provider);
   setSeg('display', s.display === 'overlay' ? 'track-dual' : s.display ?? 'track');
   setSeg('source', s.source ?? 'auto');
   showProvider(provider);
-  setSeg('claudeModel', claudeModel);
   // Animate only changes the user makes, not the initial placement.
   requestAnimationFrame(() => document.body.classList.add('ready'));
 })();

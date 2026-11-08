@@ -78,7 +78,7 @@ test('prefetch downloads French rendition, translates whole episode into cache, 
   assert.equal(st.total, 130); // 131 parsed lines, boundary duplicate removed
   assert.equal(anthropicCalls.length, 3); // 60 + 60 + 10
   const first = anthropicCalls[0].body;
-  assert.equal(first.model, 'claude-opus-5-5');
+  assert.equal(first.model, 'claude-haiku-5-5'); // a saved Opus choice maps to Haiku
   assert.deepEqual(first.output_config.format.type, 'json_schema');
   assert.equal(first.output_config.effort, 'low');
   // first batch starts near the playhead (t=400s → line 76), not at line 0
