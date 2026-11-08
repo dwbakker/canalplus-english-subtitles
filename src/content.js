@@ -1,6 +1,6 @@
 // Content script: reads the French text track, asks the background to translate,
 // and renders English as a native text track (default) or a DOM overlay.
-import { OUR_TRACK_LABEL, cleanText, cueKey, buildCueText, computeOffset, pickVideo, pickSourceTrack, nextBatch, contextBefore } from './lib/core.js';
+import { OUR_TRACK_LABEL, cleanText, stripSdh, cueKey, buildCueText, computeOffset, pickVideo, pickSourceTrack, nextBatch, contextBefore } from './lib/core.js';
 
 const api = globalThis.browser ?? globalThis.chrome;
 const LOG = (...a) => console.debug('[canal-subs]', ...a);
@@ -359,9 +359,11 @@ async function pollPrefetch() {
 function ingest() {
   const list = srcTrack.cues;
   if (!list) return;
+  const sdh = /DST|SME|sourds|SDH/i.test(srcTrack.label || '') || srcTrack.kind === 'captions';
   for (let i = 0; i < list.length; i++) {
     const c = list[i];
-    const fr = cleanText(c.text);
+    // Deaf/hard-of-hearing track: drop sound descriptions and music before translating.
+    const fr = sdh ? stripSdh(c.text) : cleanText(c.text);
     if (!fr) continue;
     // Keyed without the end time: Safari first hands out a line ending at the end of the stream,
     // then corrects the end once more subtitles load. That is the same line, not a new one.

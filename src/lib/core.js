@@ -126,8 +126,16 @@ export function buildCueText(fr, en, display) {
  * music lines (♪), and speaker labels ("JEAN :", "FEMME (off) :"). Returns '' if nothing
  * spoken is left, so the cue can be dropped.
  */
+// French deaf/hard-of-hearing subtitles colour-code non-dialogue: red = sound effects, magenta = music.
+const SDH_COLOUR = /<c\.[^>]*\b(red|magenta|rouge)\b[^>]*>[\s\S]*?<\/c>|<font[^>]*color=["']?(#?f{2}0{4}|#?f{2}00f{2}|red|magenta)\b[^>]*>[\s\S]*?<\/font>/gi;
+// Lines that are only a sound description, with no brackets ("Musique intrigante", "Rires").
+const SOUND_LINE = /^-?\s*(musique|rires?|rire|soupirs?|souffle|sonnerie|applaudissements|bruits?|toux|tousse|pleurs?|sanglots?|cris|brouhaha|explosions?|coups? de (feu|sonnette|klaxon)|klaxon|sifflements?|halètements?|grincements?|claquements?|vibrations?|gémissements?|grognements?|chuchotements?|murmures?|ronflements?|aboiements?|tonnerre|sirènes?|générique)\b[^!?:]{0,40}$/i;
+
 export function stripSdh(text) {
-  const lines = String(text)
+  const raw = String(text);
+  // Raw cue text carries the colour tags; cleaned text has none.
+  const decoloured = /<(c|font)\b/i.test(raw) ? cleanText(raw.replace(SDH_COLOUR, ' ')) : cleanText(raw);
+  const lines = decoloured
     .split('\n')
     .map(line => {
       let l = line;
@@ -136,7 +144,7 @@ export function stripSdh(text) {
       // Speaker label at line start (after an optional dialogue dash): mostly upper-case words + colon.
       l = l.replace(/^(\s*-?\s*)[A-ZÀ-ÖØ-Þ][A-ZÀ-ÖØ-Þ0-9'’ .-]{1,30}\s*:\s*/, '$1');
       l = l.replace(/\s+/g, ' ').trim();
-      if (/^-?\s*$/.test(l) || /^[-.…,!?\s]+$/.test(l)) return '';
+      if (/^-?\s*$/.test(l) || /^[-.…,!?\s]+$/.test(l) || SOUND_LINE.test(l)) return '';
       return l;
     })
     .filter(Boolean);
@@ -229,7 +237,7 @@ export function mergeCues(lists) {
     const k = `${c.start.toFixed(2)}|${text}`;
     if (seen.has(k)) continue;
     seen.add(k);
-    out.push({ start: c.start, end: c.end, text });
+    out.push({ start: c.start, end: c.end, text, raw: c.raw ?? c.text });
   }
   return out.sort((a, b) => a.start - b.start);
 }
@@ -246,9 +254,9 @@ export function parseVtt(text) {
   const out = [];
   const blocks = String(text).replace(/\r/g, '').split(/\n\n+/);
   const ts = s => {
-    const m = s.trim().match(/(?:(\d+):)?(\d{1,2}):(\d{2})[.,](\d{3})/);
+    const m = s.trim().match(/(?:(\d+):)?(\d{1,2}):(\d{2})(?:[.,](\d{1,3}))?/);
     if (!m) return NaN;
-    return (+(m[1] || 0)) * 3600 + +m[2] * 60 + +m[3] + +m[4] / 1000;
+    return (+(m[1] || 0)) * 3600 + +m[2] * 60 + +m[3] + (m[4] ? +`0.${m[4]}` : 0);
   };
   for (const block of blocks) {
     const lines = block.split('\n');
@@ -257,8 +265,67 @@ export function parseVtt(text) {
     const [a, b] = lines[i].split('-->');
     const start = ts(a);
     const end = ts(b.split(/\s+/).filter(Boolean)[0] || '');
-    const body = cleanText(lines.slice(i + 1).join('\n'));
-    if (!Number.isNaN(start) && !Number.isNaN(end) && body) out.push({ start, end, text: body });
+    const raw = lines.slice(i + 1).join('\n');
+    const body = cleanText(raw);
+    if (!Number.isNaN(start) && !Number.isNaN(end) && body) out.push({ start, end, text: body, raw });
   }
   return out;
+}
+
+/** Minimal TTML/IMSC parser (plain XML subtitle segments). Colour spans become <c.colour> tags. */
+export function parseTtml(xml) {
+  const doc = String(xml);
+  const attr = (tag, name) => tag.match(new RegExp(`\\b(?:[\\w-]+:)?${name}="([^"]*)"`))?.[1];
+  const head = doc.match(/<tt\b[^>]*>/)?.[0] || '';
+  const tickRate = +(attr(head, 'tickRate') || 10000000);
+  const frameRate = +(attr(head, 'frameRate') || 25);
+  // Styles by id, so <p style="s1"> / <span style="s2"> colours can be resolved.
+  const colours = {};
+  for (const m of doc.matchAll(/<(?:[\w-]+:)?style\b[^>]*>/g)) {
+    const id = attr(m[0], 'id');
+    const col = attr(m[0], 'color');
+    if (id && col) colours[id] = col;
+  }
+  const colourName = tag => {
+    const col = (attr(tag, 'color') || colours[attr(tag, 'style')] || '').toLowerCase();
+    if (/^(red|#f00(0{3})?(ff)?)$/.test(col) || /^#ff0000/.test(col)) return 'red';
+    if (/^(magenta|fuchsia|#f0f(f{0,3})?)$/.test(col) || /^#ff00ff/.test(col)) return 'magenta';
+    return null;
+  };
+  const time = t => {
+    if (!t) return NaN;
+    let m = t.match(/^(\d+):(\d{2}):(\d{2})(?:[.,](\d+))?$/);
+    if (m) return +m[1] * 3600 + +m[2] * 60 + +m[3] + (m[4] ? +`0.${m[4]}` : 0);
+    m = t.match(/^(\d+):(\d{2}):(\d{2}):(\d+)$/);
+    if (m) return +m[1] * 3600 + +m[2] * 60 + +m[3] + +m[4] / frameRate;
+    m = t.match(/^([\d.]+)(h|m|s|ms|t|f)$/);
+    if (m) return +m[1] * { h: 3600, m: 60, s: 1, ms: 0.001, t: 1 / tickRate, f: 1 / frameRate }[m[2]];
+    return NaN;
+  };
+  const out = [];
+  for (const m of doc.matchAll(/<(?:[\w-]+:)?p\b([^>]*)>([\s\S]*?)<\/(?:[\w-]+:)?p>/g)) {
+    const pTag = `<p${m[1]}>`;
+    const start = time(attr(pTag, 'begin'));
+    let end = time(attr(pTag, 'end'));
+    if (Number.isNaN(end)) end = start + time(attr(pTag, 'dur'));
+    const pColour = colourName(pTag);
+    let raw = m[2]
+      .replace(/<(?:[\w-]+:)?br\s*\/?>/g, '\n')
+      .replace(/<(?:[\w-]+:)?span\b([^>]*)>([\s\S]*?)<\/(?:[\w-]+:)?span>/g, (_, a, inner) => {
+        const c = colourName(`<span${a}>`);
+        return c ? `<c.${c}>${inner}</c>` : inner;
+      })
+      .replace(/<(?!\/?c[.>])[^>]+>/g, '')
+      .replace(/\s*\n\s*/g, '\n');
+    if (pColour) raw = `<c.${pColour}>${raw}</c>`;
+    const text = cleanText(raw);
+    if (!Number.isNaN(start) && !Number.isNaN(end) && text) out.push({ start, end, text, raw });
+  }
+  return out;
+}
+
+/** Parse one subtitle segment, WebVTT or TTML. */
+export function parseSubtitleFile(text) {
+  const t = String(text).replace(/^\uFEFF/, '').trimStart();
+  return /^<(\?xml|tt\b|[\w-]+:tt\b)/.test(t) ? parseTtml(t) : parseVtt(t);
 }

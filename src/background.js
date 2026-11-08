@@ -1,6 +1,6 @@
 // Background script: translation via Claude + cache in storage.local.
 import Anthropic from '@anthropic-ai/sdk';
-import { hash, parseMasterSubtitles, isFrenchRendition, isSdhRendition, stripSdh, chooseRendition, parseMediaPlaylist, parseVtt, mergeCues, prefetchOrder } from './lib/core.js';
+import { hash, parseMasterSubtitles, isFrenchRendition, isSdhRendition, stripSdh, chooseRendition, parseMediaPlaylist, parseSubtitleFile, mergeCues, prefetchOrder } from './lib/core.js';
 
 const api = globalThis.browser ?? globalThis.chrome;
 
@@ -146,8 +146,19 @@ async function downloadRendition(rendition) {
   const pl = parseMediaPlaylist(media.text, media.url);
   if (!pl.ended) return { rendition, cues: [], live: true };
   if (pl.encrypted || pl.isFmp4) return { rendition, cues: [], unsupported: pl.encrypted ? 'encrypted subtitles' : 'fMP4 subtitles not supported yet' };
-  const parsed = await pool(pl.segments, 6, async url => parseVtt((await fetchText(url)).text));
-  return { rendition, cues: mergeCues(parsed) };
+  let sample = '';
+  const parsed = await pool(pl.segments, 6, async url => {
+    const { text } = await fetchText(url);
+    if (!sample && text.trim()) sample = text.trim().slice(0, 160);
+    return parseSubtitleFile(text);
+  });
+  const cues = mergeCues(parsed);
+  // Describe what came back when nothing parsed, so an unknown format can be identified.
+  if (!cues.length) {
+    const what = sample ? `starts with: ${JSON.stringify(sample)}` : 'segments were empty';
+    return { rendition, cues, unsupported: `no cues parsed from "${rendition.name}" (${pl.segments.length} segments, ${what})` };
+  }
+  return { rendition, cues };
 }
 
 async function runPrefetch(job, { masterUrl, currentTime, source }) {
@@ -167,8 +178,8 @@ async function runPrefetch(job, { masterUrl, currentTime, source }) {
   }
   // Deaf/hard-of-hearing tracks: drop sound descriptions, music and speaker labels.
   const cues = isSdhRendition(chosen.rendition)
-    ? chosen.cues.map(c => ({ ...c, text: stripSdh(c.text) })).filter(c => c.text)
-    : chosen.cues;
+    ? chosen.cues.map(c => ({ start: c.start, end: c.end, text: stripSdh(c.raw ?? c.text) })).filter(c => c.text)
+    : chosen.cues.map(c => ({ start: c.start, end: c.end, text: c.text }));
   job.source = chosen.rendition.name;
   job.detail = `using "${chosen.rendition.name}" (${candidates.map(c => `${c.rendition.name}: ${c.cues.length}`).join(', ')})`;
   console.info('[canal-subs]', job.detail);

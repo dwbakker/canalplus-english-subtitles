@@ -57,7 +57,7 @@ test('contextBefore returns last translated lines', () => {
 
 test('parseVtt handles headers, settings, hours-less times', () => {
   const vtt = `WEBVTT\nX-TIMESTAMP-MAP=MPEGTS:900000,LOCAL:00:00:00.000\n\n1\n00:00:01.500 --> 00:00:03.000 line:85%\n<i>Salut</i>\n- Ça va ?\n\n01:02:03.000 --> 01:02:04.250\nOui.\n`;
-  assert.deepEqual(parseVtt(vtt), [
+  assert.deepEqual(parseVtt(vtt).map(({ raw, ...c }) => c), [
     { start: 1.5, end: 3, text: 'Salut\n- Ça va ?' },
     { start: 3723, end: 3724.25, text: 'Oui.' },
   ]);
@@ -167,4 +167,33 @@ test('bundled scripts are pure ASCII (Safari may decode them as Latin-1)', () =>
     // and every regex literal still compiles when the file is read as Latin-1
     new Function(bytes.toString('latin1'));
   }
+});
+
+import { parseTtml, parseSubtitleFile } from '../src/lib/core.js';
+test('stripSdh drops colour-coded and bare sound descriptions', () => {
+  assert.equal(stripSdh('Musique intrigante'), '');
+  assert.equal(stripSdh('<c.magenta>La mer, qu\'on voit danser</c>'), '');
+  assert.equal(stripSdh('<c.red>Klaxon</c>\n<c.white>Attends-moi !</c>'), 'Attends-moi !');
+  assert.equal(stripSdh(' J\'aurais pas aimé le savoir \n à l\'avance. '), "J'aurais pas aimé le savoir\nà l'avance.");
+  assert.equal(stripSdh('Silence !'), 'Silence !');
+  assert.equal(stripSdh('Musique, tu dis ?'), 'Musique, tu dis ?');
+});
+
+test('parseVtt accepts short fractions and missing milliseconds', () => {
+  const cues = parseVtt('WEBVTT\n\n00:00:01.5 --> 00:00:03\nSalut.\n');
+  assert.deepEqual(cues.map(c => [c.start, c.end, c.text]), [[1.5, 3, 'Salut.']]);
+});
+
+test('parseTtml reads times in several formats and colours', () => {
+  const xml = `<?xml version="1.0"?><tt xmlns="http://www.w3.org/ns/ttml" xmlns:ttp="http://www.w3.org/ns/ttml#parameter" ttp:tickRate="10000000" xmlns:tts="http://www.w3.org/ns/ttml#styling">
+  <head><styling><style xml:id="mus" tts:color="#FF00FF"/></styling></head><body><div>
+  <p begin="00:00:01.000" end="00:00:03.500">Bonjour<br/>toi.</p>
+  <p begin="40000000t" end="60000000t"><span style="mus">Musique douce</span></p>
+  <p begin="7s" dur="2s"><span tts:color="red">(Rires)</span> Oui.</p>
+  </div></body></tt>`;
+  const cues = parseSubtitleFile(xml);
+  assert.deepEqual(cues.map(c => [c.start, c.end, c.text]), [[1, 3.5, 'Bonjour\ntoi.'], [4, 6, 'Musique douce'], [7, 9, '(Rires) Oui.']]);
+  assert.equal(stripSdh(cues[1].raw), '');
+  assert.equal(stripSdh(cues[2].raw), 'Oui.');
+  assert.equal(parseTtml('<tt></tt>').length, 0);
 });
