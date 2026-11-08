@@ -18,9 +18,8 @@ function setSeg(key, value) {
   const buttons = [...el.querySelectorAll('button')];
   const active = buttons.find(b => b.dataset.v === value) || buttons[0];
   for (const b of buttons) b.setAttribute('aria-pressed', String(b === active));
-  const thumb = el.querySelector('.thumb');
-  thumb.style.width = `${active.offsetWidth}px`;
-  thumb.style.transform = `translateX(${active.offsetLeft - 3}px)`;
+  el.style.setProperty('--n', buttons.length);
+  el.style.setProperty('--i', buttons.indexOf(active));
   return active.dataset.v;
 }
 
@@ -29,8 +28,6 @@ const segValue = key => segs[key].querySelector('[aria-pressed="true"]')?.datase
 function showProvider(provider) {
   $('claudeOpts').hidden = provider !== 'claude';
   $('appleOpts').hidden = provider !== APPLE;
-  // The thumb is measured, so lay out the newly shown control first.
-  if (provider === 'claude') setSeg('claudeModel', segValue('claudeModel'));
 }
 
 for (const [key, el] of Object.entries(segs)) {
