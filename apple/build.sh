@@ -7,16 +7,21 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 export DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}"
 
-if [ -z "${TEAM:-}" ]; then
-  TEAM=$(defaults read com.apple.dt.Xcode IDEProvisioningTeamByIdentifier 2>/dev/null | sed -n 's/.*teamID = \([A-Z0-9]*\);.*/\1/p' | head -1 || true)
-fi
+PROJECT="apple/English Subtitles for CANAL+/English Subtitles for CANAL+.xcodeproj"
+TEAM_FILE="apple/.team" # remembered locally, not committed
+# Team: $TEAM, else the remembered one, else picked in Xcode (Signing & Capabilities), else Xcode's team list.
+[ -z "${TEAM:-}" ] && [ -f "$TEAM_FILE" ] && TEAM=$(cat "$TEAM_FILE")
+[ -z "${TEAM:-}" ] && TEAM=$(sed -n 's/.*"DEVELOPMENT_TEAM": "\([A-Z0-9]*\)".*/\1/p' "$PROJECT/project.xcproj" | head -1)
+[ -z "${TEAM:-}" ] && TEAM=$(defaults read com.apple.dt.Xcode IDEProvisioningTeamByIdentifier 2>/dev/null | sed -n 's/.*teamID = \([A-Z0-9]*\);.*/\1/p' | head -1 || true)
 if [ -z "$TEAM" ]; then
-  echo "No Apple development team found. Add your Apple ID in Xcode > Settings > Accounts, or run TEAM=<team id> $0" >&2
+  echo "No Apple development team found. Add your Apple ID in Xcode > Settings > Accounts, then open the project in Xcode," >&2
+  echo "select the app target > Signing & Capabilities and pick your team (or run TEAM=<team id> $0)." >&2
   exit 1
 fi
 
+echo "$TEAM" > "$TEAM_FILE"
+
 npm run build
-PROJECT="apple/English Subtitles for CANAL+/English Subtitles for CANAL+.xcodeproj"
 DERIVED="${TMPDIR:-/tmp}/canalplus-subtitles-build"
 xcodebuild -project "$PROJECT" -scheme "English Subtitles for CANAL+" -configuration Release \
   -derivedDataPath "$DERIVED" -allowProvisioningUpdates DEVELOPMENT_TEAM="$TEAM" build -quiet
