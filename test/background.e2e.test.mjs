@@ -23,8 +23,9 @@ const files = {
   'subs/dst-0.vtt': seg(0, 20),
 };
 
-function setup({ failFirst = 0 } = {}) {
-  const store = { apiKey: 'sk-ant-test', model: 'claude-opus-5-5' };
+function setup({ failFirst = 0, store: initial } = {}) {
+  const store = initial ?? { apiKey: 'sk-ant-test', model: 'claude-opus-5-5' };
+  const nativeCalls = [];
   const anthropicCalls = [];
   let fails = failFirst;
   const fetchMock = async (input, init = {}) => {
@@ -51,14 +52,21 @@ function setup({ failFirst = 0 } = {}) {
       async set(o) { Object.assign(store, o); },
       async remove(keys) { [].concat(keys).forEach(k => delete store[k]); },
     } },
-    runtime: { onMessage: { addListener: l => (listener = l) } },
+    runtime: {
+      onMessage: { addListener: l => (listener = l) },
+      // The Mac app's native handler (Apple's translator).
+      async sendNativeMessage(app, msg) {
+        nativeCalls.push({ app, msg });
+        return { ok: true, translations: Object.fromEntries(msg.items.map(i => [i.id, 'APPLE ' + i.text])) };
+      },
+    },
   };
   const g = Object.fromEntries(['Response','Request','Headers','URL','URLSearchParams','AbortController','AbortSignal','TextEncoder','TextDecoder','ReadableStream','FormData','Blob','File','Event','EventTarget','DOMException','structuredClone','queueMicrotask','setTimeout','clearTimeout','setInterval','clearInterval','crypto','performance','atob','btoa'].map(k => [k, globalThis[k]]));
   const ctx = vm.createContext({ ...g, browser, fetch: fetchMock, console: { ...console, warn() {} }, navigator: { userAgent: 'Safari' } });
   ctx.globalThis = ctx;
   vm.runInContext(readFileSync('dist/background.js', 'utf8'), ctx);
   const send = msg => new Promise(res => listener(msg, {}, res));
-  return { store, anthropicCalls, send };
+  return { store, anthropicCalls, nativeCalls, send };
 }
 
 const poll = async (send, msg, until, ms = 5000) => {
@@ -135,4 +143,15 @@ test('missing key and 404 playlist are reported, not thrown', async () => {
   const r = await send({ type: 'translate', items: [{ id: 'a', fr: 'x' }] });
   assert.equal(r.ok, false);
   assert.match(r.error, /API key/);
+});
+
+test('with no settings saved, Apple translates through the Mac app without an API key', async () => {
+  const { anthropicCalls, nativeCalls, send } = setup({ store: {} });
+  const r = await send({ type: 'translate', items: [{ id: 'a', fr: 'Bonjour.' }], context: [] });
+  assert.equal(r.ok, true, JSON.stringify(r));
+  assert.equal(JSON.stringify(r.translations), JSON.stringify({ a: 'APPLE Bonjour.' }));
+  assert.equal(nativeCalls.length, 1);
+  assert.equal(anthropicCalls.length, 0);
+  const st = await send({ type: 'prefetch', masterUrl: CDN + 'ANT_1.m3u8', label: 'French', language: 'fra', currentTime: 0 });
+  assert.notEqual(st.state, 'nokey');
 });

@@ -23,8 +23,8 @@
     <h2>Translator</h2>
     <div class="seg" data-key="provider">
       <span class="thumb"></span>
-      <button data-v="claude">Claude</button>
       <button data-v="apple">Apple</button>
+      <button data-v="claude">Claude</button>
     </div>
 
     <div id="claudeOpts">
@@ -32,11 +32,11 @@
         <input type="password" id="apiKey" placeholder="Anthropic API key" autocomplete="off" spellcheck="false">
         <button id="save" class="pill accent">Save</button>
       </div>
-      <p class="hint">Claude Haiku: natural, context-aware translations for about $0.01 an episode. The key stays in this browser.</p>
+      <p class="hint">More natural dialogue and slang, using the lines before as context. Claude Haiku costs about $0.01 an episode with your own key, which stays in this browser.</p>
     </div>
 
     <div id="appleOpts" hidden>
-      <p class="hint">Free and private: translated on your Mac by Apple's built-in translator. Needs the Mac app version of the extension.</p>
+      <p class="hint">Free and private: translated on your Mac by Apple's built-in translator. Needs French and English downloaded in the app.</p>
     </div>
   </section>
 
@@ -58,7 +58,6 @@
 
   <footer>
     <button id="clear" class="pill">Clear cache</button>
-    <button id="reload" class="pill" title="After npm run build: reload the extension from its folder">Reload</button>
     <span id="msg" role="status"></span>
   </footer>
   <script src="popup.js"></script>

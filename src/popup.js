@@ -48,7 +48,7 @@ for (const [key, el] of Object.entries(segs)) {
 // ---------- load ----------
 (async () => {
   const s = await api.storage.local.get(['enabled', 'apiKey', 'model', 'display', 'source']);
-  const provider = s.model === APPLE ? APPLE : 'claude';
+  const provider = (s.model ?? APPLE) === APPLE ? APPLE : 'claude';
   $('enabled').checked = s.enabled ?? true;
   if (s.apiKey) $('apiKey').placeholder = 'Key saved (paste to replace)';
   setSeg('provider', provider);
@@ -80,5 +80,3 @@ $('clear').onclick = async () => {
   say(`Removed ${r?.removed ?? 0} lines`);
 };
 
-// For development: picks up a rebuilt dist/ without removing and re-adding the extension.
-$('reload').onclick = () => api.runtime.reload();

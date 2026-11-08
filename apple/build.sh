@@ -36,5 +36,4 @@ pluginkit -r "$BUILT/Contents/PlugIns/English Subtitles for CANAL+ Extension.app
 /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -u "$BUILT" 2>/dev/null || true
 rm -rf "$DERIVED/Build/Products"
 echo "Installed ~/Applications/$APP"
-echo "Quit and reopen Safari so it loads the new version."
 open "$HOME/Applications/$APP"

@@ -41,7 +41,7 @@ async function loadSettings() {
     // 'track' = English, 'track-dual' = French + English. The old 'overlay' mode became dual.
     display: s.display === 'track-dual' || s.display === 'overlay' ? 'track-dual' : 'track',
     source: s.source ?? 'auto',
-    hasKey: !!s.apiKey || s.model === 'apple', // Apple's on-device translator needs no key
+    hasKey: !!s.apiKey || (s.model ?? 'apple') === 'apple', // Apple (the default) needs no key
   };
   fatalError = null;
   // Changing the popup is an explicit request for our subtitles.

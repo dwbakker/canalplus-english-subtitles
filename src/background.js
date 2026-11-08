@@ -7,7 +7,7 @@ const api = globalThis.browser ?? globalThis.chrome;
 export const DEFAULTS = {
   enabled: true,
   apiKey: '',
-  model: 'claude-haiku-5-5', // 'apple' = Apple's on-device translator
+  model: 'apple', // Apple's on-device translator (free); anything else = Claude Haiku
   display: 'track', // 'track' (English) | 'track-dual' (French + English)
 };
 

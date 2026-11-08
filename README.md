@@ -1,69 +1,67 @@
 # English Subtitles for CANAL+ (Safari)
 
-A Safari Web Extension that translates the French subtitles of CANAL+ shows into **English**, or shows **French and English together** for learning French, using **Apple's free on-device translator** (Mac app version) or **Claude** through your own Anthropic API key.
+A Mac app with a Safari extension that translates the French subtitles of CANAL+ shows into **English**, or shows **French and English together** for learning French. Translation is free and happens on your Mac with Apple's built-in translator. You can switch to Claude for more natural dialogue.
 
 > **Not affiliated with CANAL+.** CANAL+ is a trademark of Groupe CANAL+. This is an independent, unofficial tool for personal use with your own subscription. It does not bypass DRM and never touches the video. It only reads the subtitle text CANAL+ already sends to your browser. You are responsible for complying with CANAL+'s terms of use. No warranty.
 
 ## Features
 - **English, or French + English:** an extra subtitle track that Safari draws itself, so it works in fullscreen and Picture-in-Picture. CANAL+'s own subtitle menu lists it as **"Anglais"**.
+- **Free, private translation by default:** Apple's on-device translator. Nothing leaves your Mac, and it works offline once the languages are downloaded.
+- **Optional Claude:** more natural dialogue and slang, using the preceding lines as context. Uses Claude Haiku with your own Anthropic API key, about $0.01 per episode.
 - **Whole-episode pre-translation:** when an episode starts, its subtitles are downloaded and translated in the background, so subtitles are ready wherever you jump.
 - **Picks the useful French track:**
-  - On many French originals, the plain "Français" track only covers dialogue in other languages. The extension uses the deaf and hard-of-hearing track instead and strips its sound descriptions ("(Rires)", "[Musique]", ♪, speaker labels).
+  - On many French originals, the plain "Français" track only covers dialogue in other languages. The extension uses the deaf and hard-of-hearing track instead and removes its sound descriptions ("(Rires)", "Musique intrigante", ♪, speaker labels).
   - On dubbed or VOST content, the plain track is complete and is used.
-- **Two translators:**
-  - **Apple** (Mac app version): free, private, offline. Each line is translated on its own.
-  - **Claude**: the most natural dialogue. Batches of about 60 lines are sent with the preceding lines as context.
-- **Translations are cached in the browser,** so rewatching costs nothing.
-
-## Requirements
-- macOS 26 or later with Safari 26 or later, Node.js 18 or later, and a CANAL+ subscription.
-- For the Mac app (permanent install, free Apple translator): Xcode, with your Apple ID added. A free account works.
-- For Claude: an **Anthropic API key** from [console.anthropic.com](https://console.anthropic.com). API usage is prepaid and separate from a claude.ai subscription.
-  - The extension uses Claude Haiku 5.5: about $0.01 per 50-minute episode.
+- **Translations are cached,** so rewatching is instant, and switching translators back and forth doesn't redo work.
 
 ## Install
+You need a Mac with **macOS 26 or later**, a CANAL+ subscription, and about 15 minutes the first time. The app is built on your Mac with Xcode, because distributing a ready-made Safari extension app needs a paid Apple developer account.
+
+**1. Get the tools (once)**
+- **Xcode**, free from the [App Store](https://apps.apple.com/app/id497799835). Open it once after installing.
+- **Node.js** LTS from [nodejs.org](https://nodejs.org), or `brew install node`.
+- Your **Apple ID in Xcode**: Xcode → Settings… → Accounts → **+** → Apple Account. A free account works; it signs the app for your own Mac.
+
+**2. Install**
 ```bash
-git clone https://github.com/dwbakker/canalplus-english-subtitles.git && cd canalplus-english-subtitles
-npm install
+git clone https://github.com/dwbakker/canalplus-english-subtitles.git
+cd canalplus-english-subtitles
+./install.sh
 ```
+The script checks each requirement and tells you exactly what to do if something is missing; fix it and run it again. The first time, it may ask you to accept Xcode's license and to pick your team in Xcode (one click).
 
-### Option A: Mac app (permanent, free Apple translator)
-1. In Xcode, open Settings → Accounts and add your Apple ID.
-2. Run:
-   ```bash
-   apple/build.sh
-   ```
-   This builds the extension and the app, installs the app in `~/Applications`, and opens it.
-3. The app window walks you through the rest:
-   - turn on the extension in Safari, and allow it on `canalplus.com`, `akamaized.net` and, for Claude, `api.anthropic.com`;
-   - download French and English for Apple's translator (once, about 100 MB).
-4. In the extension's popup, choose **Apple** or **Claude**. On CANAL+, pick **"Anglais"** in the "Langues et sous-titres" menu.
+It builds the app, installs it in `~/Applications`, and opens it.
 
-After installing or updating the app, quit and reopen Safari; until then the extension's background part may not start and nothing gets translated.
+**3. Finish in the app and Safari**
+1. **Quit and reopen Safari.**
+2. The app window walks you through two steps:
+   - turning on the extension in Safari, and allowing it on `canalplus.com` and `akamaized.net` (CANAL+'s video and subtitle server);
+   - downloading French and English for Apple's translator, once.
+3. On canalplus.com, start a show and pick **"Anglais"** in the "Langues et sous-titres" menu.
 
-To update, pull and run `apple/build.sh` again.
+**Update:** in the folder, run `git pull`, then `./install.sh`, then quit and reopen Safari.
 
-### Option B: temporary extension (no Xcode, Claude only)
-1. Run `npm run build`; the unpacked extension is in `dist/`.
-2. In Safari, open Settings → Advanced and enable **"Show features for web developers"**.
-3. Open Settings → Developer → **Add Temporary Extension…** and select the `dist` folder.
-4. Open Settings → Extensions → *English Subtitles for CANAL+* → **Edit Websites**, and allow `canalplus.com`, `akamaized.net` (CANAL+'s video and subtitle server) and `api.anthropic.com`.
-5. Click the toolbar icon, paste your API key, and click **Save**.
-6. Reload CANAL+, start a show, and pick **"Anglais"** in the "Langues et sous-titres" menu.
-
-Safari removes temporary extensions when it quits, or after 24 hours. Re-add the `dist` folder when that happens; your settings and cache are kept. After rebuilding, the popup's **Reload** button picks up the new files.
+**Uninstall:** delete *English Subtitles for CANAL+* from `~/Applications`.
 
 ## Settings
+Click the **EN** icon in Safari's toolbar.
+
 | Setting | Options |
 |---|---|
-| Translator | **Claude** (Haiku 5.5, about $0.01 an episode) · **Apple** (free, on-device; Mac app only). The cache is per translator. |
-| Show | **English** · **FR + EN** (two rows: French on one line, English below it smaller, in italics) |
-| From French subtitles | **Automatic** (most complete track) · Standard · Deaf & HoH |
+| Translator | **Apple** (default: free, on your Mac) · **Claude** (Haiku 5.5 with your API key, about $0.01 an episode). To use Claude, also allow `api.anthropic.com` for the extension in Safari, and get a key at [console.anthropic.com](https://console.anthropic.com) (prepaid, separate from a claude.ai subscription). |
+| Show | **English** · **FR + EN** (French on one line, English below it smaller, in italics) |
+| From French subtitles | **Automatic** (the most complete track) · Standard · Deaf & HoH |
 
-The CANAL+ menu works as the switch:
+The CANAL+ subtitle menu is the switch:
 - **Anglais** shows the extension's track.
 - **Français** shows CANAL+'s own French subtitles.
 - **Off** shows nothing.
+
+## Troubleshooting
+- **Nothing gets translated after installing or updating:** quit and reopen Safari.
+- **The extension appears twice in Safari:** remove any temporary copy under Safari → Settings → Developer. `./install.sh` never leaves a second copy behind.
+- **"Download French and English first":** open the app and click **Download** in step 2.
+- **To see what the extension is doing:** open the page's console (Develop → Show JavaScript Console) and paste `document.documentElement.dataset.canalSubs`.
 
 ## How it works
 In Safari, CANAL+ plays HLS natively with FairPlay DRM. The subtitles are separate, **unencrypted WebVTT** tracks.
@@ -72,8 +70,10 @@ In Safari, CANAL+ plays HLS natively with FairPlay DRM. The subtitles are separa
    - reads the stream's master playlist from the video's URL;
    - downloads every French subtitle track and picks one (`chooseRendition`);
    - strips sound descriptions from deaf and hard-of-hearing text (`stripSdh`);
-   - translates with the Anthropic SDK, using structured JSON output and 60 lines per request, starting from the current position;
-   - caches results in `storage.local`, keyed by the French text.
+   - translates 60 lines at a time, starting from the current position:
+     - **Apple:** through `browser.runtime.sendNativeMessage` to the app's extension (`SafariWebExtensionHandler.swift`), which uses Apple's Translation framework in its low-latency mode;
+     - **Claude:** through the Anthropic SDK with structured JSON output, sending the preceding lines as context;
+   - caches results in `storage.local`, keyed by translator and French text.
 2. **Content script** (`src/content.js`):
    - adds an "English (auto)" `TextTrack` to the `<video>` and fills it with the translated timeline;
    - aligns the timing using the French lines Safari exposes (`computeOffset`);
@@ -83,25 +83,28 @@ In Safari, CANAL+ plays HLS natively with FairPlay DRM. The subtitles are separa
 Two findings drove this design. Safari only hands subtitle lines to the page about 2 seconds before they're shown, and stops entirely for hidden tracks after a seek. So the extension downloads the subtitle files itself instead of relying on those lines. The full investigation is in [docs/PLAN.md](docs/PLAN.md).
 
 ## Privacy
-- Your API key is stored only in Safari's extension storage, and is sent only to `api.anthropic.com`.
-- With Claude, subtitle text is sent to the Anthropic API for translation. With Apple, it never leaves your Mac.
+- With Apple (the default), subtitle text never leaves your Mac.
+- With Claude, subtitle text is sent to the Anthropic API. Your API key is stored only in Safari's extension storage and sent only to `api.anthropic.com`.
 - No other data is collected or sent anywhere.
 
 ## Development
 ```bash
-npm test         # builds, then runs unit and end-to-end tests (Node's test runner)
+npm install
+npm test         # builds dist/, then runs unit and end-to-end tests (Node's test runner)
 npm run watch    # rebuilds dist/ on change
+apple/build.sh   # builds and installs the app from the current sources
 ```
-- `test/background.e2e.test.mjs` runs the real bundled background script against a mocked CDN and a mocked Anthropic API.
-- `test/harness/index.html` runs the content script on a local clip with mocked extension APIs. Serve the repo root over HTTP, e.g. `python3 -m http.server`, and open `/test/harness/index.html?hls=1`.
-- `apple/` is the Xcode project for the Mac app. Its extension uses the files in `dist/`, so run `npm run build` before building in Xcode (`apple/build.sh` does both). The native side is `SafariWebExtensionHandler.swift`, which answers `browser.runtime.sendNativeMessage` with Apple's Translation framework.
+- `src/` is the web extension. `npm run build` bundles it into `dist/`, which the Xcode project in `apple/` uses directly.
+- `apple/` is the Xcode project: a SwiftUI setup app and the extension's native handler, `SafariWebExtensionHandler.swift`.
+- For quick iteration without the app, load `dist/` as a temporary extension: Safari → Settings → Developer → Add Temporary Extension. Apple translation needs the app, so use Claude there. Remove the temporary copy afterwards.
+- `test/background.e2e.test.mjs` runs the real bundled background script against a mocked CDN, Anthropic API and native app.
+- `test/harness/` has pages that run the content script and the popup with mocked extension APIs. Serve the repo root (`python3 -m http.server`) and open `/test/harness/index.html?hls=1` or `/test/harness/popup.html`.
 - `tools/make-icons.swift` draws the icons: `swift tools/make-icons.swift`.
-- `test/harness/popup.html` shows the popup with mocked storage.
-- `recon/` holds diagnostic snippets for inspecting the CANAL+ player from Web Inspector.
-- To debug on canalplus.com, paste `document.documentElement.dataset.canalSubs` into the page's console. CANAL+ silences `console.log`, so the extension publishes its state there instead. Background logs are under Develop → Web Extension Background Content.
+- `recon/` holds diagnostic snippets for inspecting the CANAL+ player from Web Inspector. CANAL+ silences `console.log`, so the extension publishes its state in `document.documentElement.dataset.canalSubs`.
 
 ## Limitations
-- Safari only. Chrome and Firefox get DASH from CANAL+, which this extension doesn't handle.
+- Safari on macOS only. Chrome and Firefox get DASH from CANAL+, which this extension doesn't handle.
+- Apple's translator handles each line on its own, so slang and lines split across subtitles can come out literal. Claude does better there.
 - Live channels have no complete subtitle file, so lines are translated as they arrive and can appear late.
 - Translating back to English from the French subtitles of an English-language film approximates the original dialogue; it won't recover the exact lines.
 
