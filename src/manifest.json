@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "English Subtitles for CANAL+",
-  "version": "0.5.3",
+  "version": "0.5.4",
   "description": "Translates CANAL+ French subtitles into English with Claude and shows them in sync with the video.",
   "permissions": ["storage", "unlimitedStorage"],
   "host_permissions": [

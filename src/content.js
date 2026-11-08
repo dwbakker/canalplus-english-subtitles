@@ -154,11 +154,16 @@ function rebuildTrack() {
   // leftovers pile up. So cues on screen stay (only their text is updated); the rest are replaced.
   const active = t.activeCues ? [...t.activeCues] : [];
   for (const c of [...(t.cues || [])]) if (!active.includes(c)) t.removeCue(c);
-  for (const c of active) if (c.fr != null) c.text = buildCueText(c.fr, c.en, settings.display);
+  for (const c of active) {
+    const text = c.fr != null && buildCueText(c.fr, c.en, settings.display);
+    if (text && c.text !== text) c.text = text;
+  }
   keptCues = active;
   timelineAdded = new Set();
   if (inTimeline()) addTimelineCues(t);
-  else for (const c of cues.values()) if (c.en != null) addOurCue(t, c);
+  else for (const c of cues.values()) {
+    if (c.en != null) c.vtt = active.find(k => k.fr === c.fr && k.startTime === c.start) || addOurCue(t, c);
+  }
   renderedDisplay = settings.display;
 }
 
@@ -206,15 +211,22 @@ async function refreshTimeline() {
   }
 }
 
+// Until Safari corrects a line's end time it can be the end of the stream; never keep a
+// translated line up longer than a subtitle plausibly lasts.
+const MAX_CUE_SECONDS = 10;
+const liveCueEnd = c => Math.min(c.end, c.start + MAX_CUE_SECONDS);
+
 function addOurCue(track, c) {
   try {
-    if (overlapsKept(c)) return;
-    const cue = new VTTCue(c.start, c.end, buildCueText(c.fr, c.en, settings.display));
+    if (overlapsKept(c)) return null;
+    const cue = new VTTCue(c.start, liveCueEnd(c), buildCueText(c.fr, c.en, settings.display));
     cue.fr = c.fr;
     cue.en = c.en;
     track.addCue(cue);
+    return cue;
   } catch (e) {
     LOG('addCue failed', e);
+    return null;
   }
 }
 
@@ -351,8 +363,15 @@ function ingest() {
     const c = list[i];
     const fr = cleanText(c.text);
     if (!fr) continue;
-    const key = cueKey(c.startTime, c.endTime, fr);
-    if (!cues.has(key)) cues.set(key, { key, start: c.startTime, end: c.endTime, fr });
+    // Keyed without the end time: Safari first hands out a line ending at the end of the stream,
+    // then corrects the end once more subtitles load. That is the same line, not a new one.
+    const key = cueKey(c.startTime, c.startTime, fr);
+    const known = cues.get(key);
+    if (!known) cues.set(key, { key, start: c.startTime, end: c.endTime, fr });
+    else if (known.end !== c.endTime) {
+      known.end = c.endTime;
+      if (known.vtt) known.vtt.endTime = liveCueEnd(known);
+    }
   }
 }
 
@@ -401,7 +420,7 @@ async function sendBatch(batch, context) {
     if (en == null) continue;
     c.en = en;
     translatedCount++;
-    if (!inTimeline()) addOurCue(track, c);
+    if (!inTimeline()) c.vtt = addOurCue(track, c);
   }
   if (inTimeline()) lastTimelineFetch = 0; // pick the new lines up from the timeline right away
   if (translatedCount && overlay?.badge.dataset.kind !== 'error') status('');
