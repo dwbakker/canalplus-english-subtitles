@@ -30,6 +30,11 @@ APP="English Subtitles for CANAL+.app"
 mkdir -p "$HOME/Applications"
 rm -rf "$HOME/Applications/$APP"
 cp -R "$DERIVED/Build/Products/Release/$APP" "$HOME/Applications/"
+# Remove the build copy, or macOS registers it as a second copy of the extension in Safari.
+BUILT="$DERIVED/Build/Products/Release/$APP"
+pluginkit -r "$BUILT/Contents/PlugIns/English Subtitles for CANAL+ Extension.appex" 2>/dev/null || true
+/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -u "$BUILT" 2>/dev/null || true
+rm -rf "$DERIVED/Build/Products"
 echo "Installed ~/Applications/$APP"
 echo "Quit and reopen Safari so it loads the new version."
 open "$HOME/Applications/$APP"
