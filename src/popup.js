@@ -56,7 +56,7 @@ for (const [key, el] of Object.entries(segs)) {
   $('enabled').checked = s.enabled ?? true;
   if (s.apiKey) $('apiKey').placeholder = 'Key saved (paste to replace)';
   setSeg('provider', provider);
-  setSeg('display', s.display ?? 'track');
+  setSeg('display', s.display === 'overlay' ? 'track-dual' : s.display ?? 'track');
   setSeg('source', s.source ?? 'auto');
   showProvider(provider);
   setSeg('claudeModel', claudeModel);

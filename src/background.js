@@ -8,7 +8,7 @@ export const DEFAULTS = {
   enabled: true,
   apiKey: '',
   model: 'claude-opus-5-5',
-  display: 'track', // 'track' (native, works in fullscreen) | 'overlay' (FR + EN DOM overlay)
+  display: 'track', // 'track' (English) | 'track-dual' (French + English)
 };
 
 async function settings() {

@@ -1,5 +1,5 @@
 // Content script: reads the French text track, asks the background to translate,
-// and renders English as a native text track (default) or a DOM overlay.
+// and renders English (or French + English) as a native text track.
 import { OUR_TRACK_LABEL, cleanText, stripSdh, cueKey, buildCueText, computeOffset, pickVideo, pickSourceTrack, nextBatch, contextBefore } from './lib/core.js';
 
 const api = globalThis.browser ?? globalThis.chrome;
@@ -38,7 +38,8 @@ async function loadSettings() {
   const was = settings;
   settings = {
     enabled: s.enabled ?? true,
-    display: s.display ?? 'track',
+    // 'track' = English, 'track-dual' = French + English. The old 'overlay' mode became dual.
+    display: s.display === 'track-dual' || s.display === 'overlay' ? 'track-dual' : 'track',
     source: s.source ?? 'auto',
     hasKey: !!s.apiKey || s.model === 'apple', // Apple's on-device translator needs no key
   };
@@ -126,9 +127,8 @@ function syncModes() {
     else if (ours.mode !== 'showing' && fr.mode !== 'showing' && (prev.ours === 'showing' || prev.fr === 'showing')) userChoice = 'off';
     if (userChoice !== prev.choice) LOG('menu choice →', userChoice);
   }
-  const native = settings.display.startsWith('track');
   if (userChoice === 'en') {
-    setMode(ours, native ? 'showing' : 'hidden');
+    setMode(ours, 'showing');
     setMode(fr, 'hidden'); // keep French cues loading, but don't draw them
   } else if (userChoice === 'fr') {
     setMode(ours, 'hidden');
@@ -142,7 +142,6 @@ function applyDisplay() {
   if (renderedDisplay !== settings.display) rebuildTrack();
   syncModes();
   ensureOverlay();
-  if (overlay) overlay.text.style.display = settings.enabled && settings.display === 'overlay' && userChoice === 'en' ? '' : 'none';
 }
 
 // Re-create our track's cues when the display mode changes (English only ↔ French + English).
@@ -428,7 +427,7 @@ async function sendBatch(batch, context) {
   if (translatedCount && overlay?.badge.dataset.kind !== 'error') status('');
 }
 
-// ---------- overlay (dual FR/EN + status badge) ----------
+// ---------- overlay layer (status badge) ----------
 function stableContainer(v) {
   // Highest ancestor that is still roughly the video's size: usually the element the player fullscreens.
   let best = v.parentElement;
@@ -449,13 +448,6 @@ function ensureOverlay() {
     const root = document.createElement('div');
     root.setAttribute('data-canal-subs', '');
     root.style.cssText = 'position:absolute;inset:0;pointer-events:none;z-index:2147483646;';
-    const text = document.createElement('div');
-    text.style.cssText =
-      'position:absolute;left:5%;right:5%;bottom:9%;text-align:center;font:600 clamp(16px,2.6vw,38px)/1.25 -apple-system,system-ui,sans-serif;color:#fff;text-shadow:0 0 4px #000,0 0 2px #000;white-space:pre-line;';
-    const fr = document.createElement('div');
-    fr.style.cssText = 'font-size:0.62em;opacity:0.8;margin-bottom:0.2em;';
-    const en = document.createElement('div');
-    text.append(fr, en);
     const badge = document.createElement('div');
     badge.style.cssText =
       // Liquid Glass pill: blurs and brightens the video behind it, bright rim on top.
@@ -463,8 +455,8 @@ function ensureOverlay() {
       'background:rgba(22,24,34,.38);-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);' +
       'border:1px solid rgba(255,255,255,.22);box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 8px 24px rgba(0,0,0,.35);' +
       'color:#fff;font:600 13px/1.25 -apple-system,system-ui,sans-serif;letter-spacing:-.1px;text-shadow:0 1px 2px rgba(0,0,0,.35);display:none;';
-    root.append(text, badge);
-    overlay = { root, text, fr, en, badge };
+    root.append(badge);
+    overlay = { root, badge };
   }
   if (getComputedStyle(parent).position === 'static') parent.style.position = 'relative';
   parent.appendChild(overlay.root);
@@ -483,28 +475,11 @@ function status(msg, isError = false) {
   if (msg && !isError) badgeTimer = setTimeout(() => (b.style.display = 'none'), 6000);
 }
 
-function renderOverlay() {
-  requestAnimationFrame(renderOverlay);
-  if (!overlay || !video || !settings.enabled || settings.display !== 'overlay') return;
-  const t = video.currentTime;
-  let fr = '', en = '';
-  const list = inTimeline() ? episode.map(c => ({ ...c, start: c.start + offset, end: c.end + offset })) : cues.values();
-  for (const c of list) {
-    if (c.start <= t && t < c.end) {
-      fr += (fr ? '\n' : '') + c.fr;
-      en += (en ? '\n' : '') + (c.en ?? '…');
-    }
-  }
-  if (overlay.fr.textContent !== fr) overlay.fr.textContent = fr;
-  if (overlay.en.textContent !== en) overlay.en.textContent = en;
-}
-
 // ---------- boot ----------
 document.addEventListener('fullscreenchange', () => ensureOverlay());
 document.addEventListener('webkitfullscreenchange', () => ensureOverlay());
 injectCueStyle();
 loadSettings().then(() => {
   setInterval(tick, 500);
-  requestAnimationFrame(renderOverlay);
   LOG('ready');
 });
