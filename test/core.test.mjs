@@ -197,3 +197,7 @@ test('parseTtml reads times in several formats and colours', () => {
   assert.equal(stripSdh(cues[2].raw), 'Oui.');
   assert.equal(parseTtml('<tt></tt>').length, 0);
 });
+
+test('buildCueText drops empty lines between two-line subtitles', () => {
+  assert.equal(buildCueText('- Tu pars où ?\n- En Jordanie.', '- Where are you going?\n\n- In Jordan.', 'track'), '- Where are you going?\n- In Jordan.');
+});

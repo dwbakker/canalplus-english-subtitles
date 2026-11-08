@@ -52,11 +52,11 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
         }
 
         do {
-            let session = TranslationSession(installedSource: Languages.french, target: Languages.english)
-            let responses = try await session.translations(from: requests)
+            let responses = try await makeSession().translations(from: requests)
             var out: [String: String] = [:]
             for response in responses {
-                if let id = response.clientIdentifier { out[id] = response.targetText }
+                // Apple doubles line breaks in two-line subtitles; keep one.
+                if let id = response.clientIdentifier { out[id] = response.targetText.replacing(/\n\s*\n/, with: "\n") }
             }
             return ["ok": true, "translations": out]
         } catch {
@@ -64,6 +64,15 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
             return ["ok": false, "error": "Apple translation failed: \(error.localizedDescription)", "retryable": true]
         }
     }
+}
+
+/// The default (high-fidelity) mode takes ~34 s per 60 lines; low latency takes ~2-3 s with
+/// near-identical subtitle translations (measured on an M1 Pro, macOS 27).
+private func makeSession() -> TranslationSession {
+    if #available(macOS 26.4, *) {
+        return TranslationSession(installedSource: Languages.french, target: Languages.english, preferredStrategy: .lowLatency)
+    }
+    return TranslationSession(installedSource: Languages.french, target: Languages.english)
 }
 
 enum Languages {

@@ -118,7 +118,8 @@ export const oneLine = t => String(t).split('\n').map(l => l.trim()).filter(Bool
  */
 export function buildCueText(fr, en, display) {
   if (display === 'track-dual') return `${escapeCueText(oneLine(fr))}\n<c.en><i>${escapeCueText(oneLine(en))}</i></c.en>`;
-  return escapeCueText(en);
+  // Some translators (Apple) double the line break in two-line subtitles; drop empty lines.
+  return escapeCueText(String(en).replace(/\n\s*\n/g, "\n"));
 }
 
 /**
