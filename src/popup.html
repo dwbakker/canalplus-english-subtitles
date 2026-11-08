@@ -2,52 +2,72 @@
 <html>
 <head>
 <meta charset="utf-8">
-<style>
-  :root { color-scheme: light dark; }
-  body { font: 13px -apple-system, system-ui, sans-serif; width: 300px; margin: 14px; }
-  h1 { font-size: 15px; margin: 0 0 12px; }
-  label { display: block; margin: 10px 0 4px; font-weight: 600; }
-  input[type=password], select { width: 100%; box-sizing: border-box; padding: 5px; }
-  .row { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
-  .row label { margin: 0; font-weight: 400; }
-  small { color: GrayText; display: block; margin-top: 3px; }
-  button { margin-top: 12px; }
-  #msg { margin-top: 8px; min-height: 1em; }
-</style>
+<link rel="stylesheet" href="popup.css">
 </head>
 <body>
-  <h1>English Subtitles for CANAL+</h1>
-  <div class="row"><input type="checkbox" id="enabled"><label for="enabled">Enabled</label></div>
+  <div class="backdrop" aria-hidden="true"><i class="blob a"></i><i class="blob b"></i><i class="blob c"></i></div>
 
-  <label for="apiKey">Anthropic API key</label>
-  <input type="password" id="apiKey" placeholder="sk-ant-…" autocomplete="off">
-  <small>Stored only in this browser's extension storage.</small>
+  <header class="glass head">
+    <div class="glyph" aria-hidden="true">EN</div>
+    <div class="titles">
+      <h1>English Subtitles</h1>
+      <p>for CANAL+</p>
+    </div>
+    <label class="switch" title="Enable or disable">
+      <input type="checkbox" id="enabled">
+      <span class="track"><span class="knob"></span></span>
+    </label>
+  </header>
 
-  <label for="model">Model</label>
-  <select id="model">
-    <option value="claude-opus-5-5">Claude Opus 5.5 (best quality)</option>
-    <option value="claude-sonnet-5-5">Claude Sonnet 5.5</option>
-    <option value="claude-haiku-5-5">Claude Haiku 5.5 (cheapest, fastest)</option>
-  </select>
+  <section class="glass card">
+    <h2>Translator</h2>
+    <div class="seg" data-key="provider">
+      <span class="thumb"></span>
+      <button data-v="claude">Claude</button>
+      <button data-v="apple">Apple</button>
+    </div>
 
-  <label for="display">Display</label>
-  <select id="display">
-    <option value="track">English only (works in fullscreen)</option>
-    <option value="track-dual">French + English (works in fullscreen)</option>
-    <option value="overlay">French + English overlay (custom style, not in native fullscreen)</option>
-  </select>
+    <div id="claudeOpts">
+      <div class="seg small" data-key="claudeModel">
+        <span class="thumb"></span>
+        <button data-v="claude-opus-5-5" title="Best quality">Opus</button>
+        <button data-v="claude-sonnet-5-5">Sonnet</button>
+        <button data-v="claude-haiku-5-5" title="Cheapest, about $0.01 an episode">Haiku</button>
+      </div>
+      <div class="keyrow">
+        <input type="password" id="apiKey" placeholder="Anthropic API key" autocomplete="off" spellcheck="false">
+        <button id="save" class="pill accent">Save</button>
+      </div>
+      <p class="hint">Natural, context-aware translations. The key stays in this browser.</p>
+    </div>
 
-  <label for="source">French subtitles to translate</label>
-  <select id="source">
-    <option value="auto">Automatic (most complete track)</option>
-    <option value="standard">French</option>
-    <option value="sdh">French for deaf &amp; hard of hearing (DST/SME)</option>
-  </select>
-  <small>Some series' "French" track only covers dialogue that isn't in French; the DST track has everything.</small>
+    <div id="appleOpts" hidden>
+      <p class="hint">Free and private: translated on your Mac by Apple's built-in translator. Needs the Mac app version of the extension.</p>
+    </div>
+  </section>
 
-  <button id="save">Save key</button>
-  <button id="clear">Clear translation cache</button>
-  <div id="msg"></div>
+  <section class="glass card">
+    <h2>Show</h2>
+    <div class="seg" data-key="display">
+      <span class="thumb"></span>
+      <button data-v="track">English</button>
+      <button data-v="track-dual" title="French on top, English below">FR + EN</button>
+      <button data-v="overlay" title="Drawn over the page; not shown in Safari's native fullscreen">Overlay</button>
+    </div>
+    <h2>From French subtitles</h2>
+    <div class="seg small" data-key="source">
+      <span class="thumb"></span>
+      <button data-v="auto" title="The most complete French track">Automatic</button>
+      <button data-v="standard">Standard</button>
+      <button data-v="sdh" title="For the deaf and hard of hearing (DST/SME); sound descriptions are removed">Deaf &amp; HoH</button>
+    </div>
+  </section>
+
+  <footer>
+    <button id="clear" class="pill">Clear cache</button>
+    <button id="reload" class="pill" title="After npm run build: reload the extension from its folder">Reload</button>
+    <span id="msg" role="status"></span>
+  </footer>
   <script src="popup.js"></script>
 </body>
 </html>

@@ -5,7 +5,7 @@ import { cpSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 const watch = process.argv.includes('--watch');
 rmSync('dist', { recursive: true, force: true });
 mkdirSync('dist');
-for (const f of ['manifest.json', 'popup.html', 'popup.js']) cpSync(`src/${f}`, `dist/${f}`);
+for (const f of ['manifest.json', 'popup.html', 'popup.css', 'popup.js']) cpSync(`src/${f}`, `dist/${f}`);
 
 const opts = {
   entryPoints: ['src/background.js', 'src/content.js'],

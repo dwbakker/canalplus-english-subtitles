@@ -59,7 +59,35 @@ async function translateWithClaude({ items, context }, s) {
   return Object.fromEntries(parsed.translations.map(t => [t.id, t.en]));
 }
 
+// Apple's on-device translator, reached through the Mac app that contains this extension
+// (apple/). Safari routes native messages to the containing app whatever id is passed.
+const NATIVE_APP = 'io.github.dwbakker.canalplus-subtitles';
+export const APPLE = 'apple';
+const needsKey = model => model !== APPLE;
+
+class ProviderError extends Error {
+  constructor(message, retryable = false) {
+    super(message);
+    this.retryable = retryable;
+  }
+}
+
+async function translateWithApple({ items }) {
+  let res;
+  try {
+    res = await api.runtime.sendNativeMessage(NATIVE_APP, { type: 'translate', items: items.map(it => ({ id: it.id, text: it.fr })) });
+  } catch {
+    throw new ProviderError('Apple translation needs the Mac app version of the extension (see the README).');
+  }
+  if (!res?.ok) throw new ProviderError(res?.error || 'Apple translation failed.', !!res?.retryable);
+  return res.translations;
+}
+
+const isRetryable = err =>
+  !!err?.retryable || err instanceof Anthropic.RateLimitError || err instanceof Anthropic.InternalServerError || err instanceof Anthropic.APIConnectionError;
+
 function describeError(err) {
+  if (err instanceof ProviderError) return err.message;
   if (err instanceof Anthropic.AuthenticationError) return 'Invalid Anthropic API key — check the extension popup.';
   if (err instanceof Anthropic.PermissionDeniedError) return 'API key lacks permission for this model.';
   if (err instanceof Anthropic.NotFoundError) return 'Model not found — pick another in the popup.';
@@ -75,7 +103,7 @@ const inFlight = new Map();
 /** items: [{id, fr}] → {id: en} using cache, then in-flight requests, then Claude for the rest. */
 async function translate(msg) {
   const s = await settings();
-  if (!s.apiKey) throw new Error('No Anthropic API key set — open the extension popup.');
+  if (needsKey(s.model) && !s.apiKey) throw new Error('No Anthropic API key set — open the extension popup.');
   const keys = msg.items.map(it => cacheKey(it.fr, s.model));
   const cached = await api.storage.local.get(keys);
   const result = {};
@@ -88,7 +116,8 @@ async function translate(msg) {
     else need.push(it);
   });
   if (need.length) {
-    const fresh = translateWithClaude({ items: need, context: msg.context ?? [] }, s);
+    const translator = s.model === APPLE ? translateWithApple : translateWithClaude;
+    const fresh = translator({ items: need, context: msg.context ?? [] }, s);
     for (const it of need) {
       const k = cacheKey(it.fr, s.model);
       const p = fresh.then(f => f[it.id]);
@@ -202,8 +231,7 @@ async function runPrefetch(job, { masterUrl, currentTime, source }) {
         await translate({ items, context });
         break;
       } catch (err) {
-        const retryable = err instanceof Anthropic.RateLimitError || err instanceof Anthropic.InternalServerError || err instanceof Anthropic.APIConnectionError;
-        if (!retryable || attempt >= 3) throw err;
+        if (!isRetryable(err) || attempt >= 3) throw err;
         await new Promise(r => setTimeout(r, 5000 * (attempt + 1)));
       }
     }
@@ -249,7 +277,7 @@ api.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg?.type === 'translate') {
     translate(msg).then(
       r => sendResponse({ ok: true, ...r }),
-      err => sendResponse({ ok: false, error: describeError(err), retryable: err instanceof Anthropic.RateLimitError || err instanceof Anthropic.InternalServerError || err instanceof Anthropic.APIConnectionError }),
+      err => sendResponse({ ok: false, error: describeError(err), retryable: isRetryable(err) }),
     );
     return true; // async response
   }
@@ -258,7 +286,7 @@ api.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     return true;
   }
   if (msg?.type === 'prefetch') {
-    settings().then(s => sendResponse(s.apiKey ? prefetch(msg, s.model) : { state: 'nokey' }));
+    settings().then(s => sendResponse(s.apiKey || !needsKey(s.model) ? prefetch(msg, s.model) : { state: 'nokey' }));
     return true;
   }
   if (msg?.type === 'getSettings') {

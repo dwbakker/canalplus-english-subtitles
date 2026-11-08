@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>popup harness</title>
+<script>
+// Fake extension API so dist/popup.html can be viewed in a normal browser tab.
+const store = { enabled: true, model: 'claude-haiku-5-5', display: 'track-dual', source: 'auto', apiKey: 'x' };
+window.browser = {
+  storage: { local: {
+    get: async keys => Object.fromEntries((keys || Object.keys(store)).filter(k => k in store).map(k => [k, store[k]])),
+    set: async o => Object.assign(store, o),
+  } },
+  runtime: { sendMessage: async () => ({ removed: 42 }), reload: () => location.reload() },
+};
+fetch('/dist/popup.html').then(r => r.text()).then(html => {
+  html = html.replace('href="popup.css"', 'href="/dist/popup.css"').replace('src="popup.js"', 'src="/dist/popup.js"');
+  document.open(); document.write(html); document.close();
+});
+</script>

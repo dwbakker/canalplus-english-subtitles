@@ -34,13 +34,13 @@ const inTimeline = () => !!episode && episode.some(c => c.en != null);
 
 // ---------- settings ----------
 async function loadSettings() {
-  const s = await api.storage.local.get(['enabled', 'display', 'source', 'apiKey']);
+  const s = await api.storage.local.get(['enabled', 'display', 'source', 'apiKey', 'model']);
   const was = settings;
   settings = {
     enabled: s.enabled ?? true,
     display: s.display ?? 'track',
     source: s.source ?? 'auto',
-    hasKey: !!s.apiKey,
+    hasKey: !!s.apiKey || s.model === 'apple', // Apple's on-device translator needs no key
   };
   fatalError = null;
   // Changing the popup is an explicit request for our subtitles.
@@ -458,7 +458,11 @@ function ensureOverlay() {
     text.append(fr, en);
     const badge = document.createElement('div');
     badge.style.cssText =
-      'position:absolute;top:12px;right:12px;max-width:50%;padding:6px 10px;border-radius:8px;background:rgba(0,0,0,.7);color:#fff;font:13px -apple-system,system-ui,sans-serif;display:none;';
+      // Liquid Glass pill: blurs and brightens the video behind it, bright rim on top.
+      'position:absolute;top:16px;right:16px;max-width:50%;padding:8px 14px;border-radius:999px;' +
+      'background:rgba(22,24,34,.38);-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);' +
+      'border:1px solid rgba(255,255,255,.22);box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 8px 24px rgba(0,0,0,.35);' +
+      'color:#fff;font:600 13px/1.25 -apple-system,system-ui,sans-serif;letter-spacing:-.1px;text-shadow:0 1px 2px rgba(0,0,0,.35);display:none;';
     root.append(text, badge);
     overlay = { root, text, fr, en, badge };
   }
@@ -472,8 +476,9 @@ function status(msg, isError = false) {
   if (!overlay) return;
   const b = overlay.badge;
   clearTimeout(badgeTimer);
-  b.textContent = msg ? `CANAL+ EN subs: ${msg}` : '';
+  b.textContent = msg ? `EN · ${msg}` : '';
   b.dataset.kind = isError ? 'error' : 'info';
+  b.style.borderColor = isError ? 'rgba(255,99,99,.6)' : 'rgba(255,255,255,.22)';
   b.style.display = msg ? '' : 'none';
   if (msg && !isError) badgeTimer = setTimeout(() => (b.style.display = 'none'), 6000);
 }

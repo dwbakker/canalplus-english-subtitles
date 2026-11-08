@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
   "name": "English Subtitles for CANAL+",
-  "version": "0.5.5",
-  "description": "Translates CANAL+ French subtitles into English with Claude and shows them in sync with the video.",
-  "permissions": ["storage", "unlimitedStorage"],
+  "version": "0.6.0",
+  "description": "Translates CANAL+ French subtitles into English, with Claude or Apple's on-device translator, in sync with the video.",
+  "permissions": ["storage", "unlimitedStorage", "nativeMessaging"],
   "host_permissions": [
     "*://*.canalplus.com/*",
     "*://*.akamaized.net/*",

@@ -1,0 +1,155 @@
+/* Liquid Glass: translucent layers that blur and brighten what's behind them, with a bright
+   rim along the top edge and soft depth below. */
+:root {
+  color-scheme: light dark;
+  --text: #0b1020;
+  --muted: rgba(11, 16, 32, 0.58);
+  --glass: rgba(255, 255, 255, 0.42);
+  --glass-strong: rgba(255, 255, 255, 0.72);
+  --rim: rgba(255, 255, 255, 0.85);
+  --edge: rgba(255, 255, 255, 0.5);
+  --shade: rgba(20, 30, 60, 0.16);
+  --accent: #0a84ff;
+  --bg1: #dfe8ff;
+  --bg2: #f6e7ff;
+  --blob-a: #7aa7ff;
+  --blob-b: #ff8fc7;
+  --blob-c: #6fe3d1;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: #f4f6ff;
+    --muted: rgba(244, 246, 255, 0.6);
+    --glass: rgba(255, 255, 255, 0.08);
+    --glass-strong: rgba(255, 255, 255, 0.2);
+    --rim: rgba(255, 255, 255, 0.35);
+    --edge: rgba(255, 255, 255, 0.14);
+    --shade: rgba(0, 0, 0, 0.45);
+    --bg1: #0b0f1f;
+    --bg2: #1a0f26;
+    --blob-a: #2b5cff;
+    --blob-b: #c2367f;
+    --blob-c: #0f9c8a;
+  }
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  width: 330px;
+  padding: 12px;
+  font: 13px/1.35 -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  color: var(--text);
+  background: linear-gradient(160deg, var(--bg1), var(--bg2));
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  gap: 10px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Colour behind the glass, so the blur has something to refract. */
+.backdrop { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+.blob { position: absolute; border-radius: 50%; filter: blur(38px); opacity: 0.75; }
+.blob.a { width: 210px; height: 210px; left: -60px; top: -50px; background: var(--blob-a); }
+.blob.b { width: 190px; height: 190px; right: -70px; top: 150px; background: var(--blob-b); }
+.blob.c { width: 200px; height: 200px; left: 40px; bottom: -90px; background: var(--blob-c); }
+body > :not(.backdrop) { position: relative; z-index: 1; }
+
+.glass {
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(22px) saturate(180%);
+  backdrop-filter: blur(22px) saturate(180%);
+  border: 1px solid var(--edge);
+  border-radius: 20px;
+  box-shadow:
+    inset 0 1px 0 var(--rim),
+    inset 0 -1px 1px rgba(255, 255, 255, 0.06),
+    0 8px 24px var(--shade);
+}
+
+.head { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 22px; }
+.glyph {
+  width: 36px; height: 36px; border-radius: 11px;
+  display: grid; place-items: center;
+  font: 700 13px/1 -apple-system, system-ui, sans-serif; letter-spacing: 0.5px; color: #fff;
+  background: linear-gradient(145deg, #3d8bff, #7b5cff 55%, #ff5fa2);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), inset 0 -2px 4px rgba(0, 0, 0, 0.18), 0 4px 10px rgba(61, 139, 255, 0.35);
+}
+.titles { flex: 1; min-width: 0; }
+h1 { font-size: 15px; font-weight: 650; margin: 0; letter-spacing: -0.2px; }
+.titles p { margin: 1px 0 0; color: var(--muted); font-size: 12px; }
+
+.card { padding: 12px; display: grid; gap: 9px; }
+h2 { margin: 2px 2px 0; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); }
+.hint { margin: 0 2px; color: var(--muted); font-size: 11.5px; }
+
+/* Segmented control with a sliding glass thumb. */
+.seg {
+  position: relative; display: flex; padding: 3px; border-radius: 14px;
+  background: rgba(127, 127, 160, 0.14);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.12);
+}
+.seg button {
+  position: relative; z-index: 1; flex: 1; border: 0; background: none; color: var(--text);
+  font: 550 12.5px/1 -apple-system, system-ui, sans-serif; padding: 8px 4px; border-radius: 11px; cursor: pointer;
+  opacity: 0.72; transition: opacity 0.2s;
+}
+.seg button[aria-pressed="true"] { opacity: 1; }
+.seg.small button { font-size: 12px; padding: 7px 4px; }
+.seg .thumb {
+  position: absolute; top: 3px; bottom: 3px; left: 3px; border-radius: 11px;
+  background: var(--glass-strong);
+  border: 1px solid var(--edge);
+  box-shadow: inset 0 1px 0 var(--rim), 0 2px 8px var(--shade);
+  transition: transform 0.38s cubic-bezier(0.3, 1.4, 0.5, 1), width 0.3s ease;
+}
+
+/* Toggle switch. */
+.switch { position: relative; cursor: pointer; }
+.switch input { position: absolute; opacity: 0; }
+.switch .track {
+  display: block; width: 46px; height: 28px; border-radius: 14px;
+  background: rgba(127, 127, 160, 0.3); box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: background 0.25s;
+}
+.switch .knob {
+  position: absolute; top: 2px; left: 2px; width: 24px; height: 24px; border-radius: 50%;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: inset 0 1px 0 #fff, 0 2px 6px rgba(0, 0, 0, 0.25);
+  transition: transform 0.35s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+.switch input:checked + .track { background: #34c759; }
+.switch input:checked + .track .knob { transform: translateX(18px); }
+.switch input:focus-visible + .track { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.keyrow { display: flex; gap: 6px; }
+input[type=password] {
+  flex: 1; min-width: 0; padding: 8px 11px; border-radius: 12px; font: 12.5px -apple-system, system-ui, sans-serif; color: var(--text);
+  background: rgba(127, 127, 160, 0.14); border: 1px solid var(--edge);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.12); outline: none;
+}
+input[type=password]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.25); }
+
+.pill {
+  border: 1px solid var(--edge); border-radius: 999px; padding: 7px 13px; cursor: pointer;
+  font: 550 12px/1 -apple-system, system-ui, sans-serif; color: var(--text);
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(16px) saturate(170%);
+  backdrop-filter: blur(16px) saturate(170%);
+  box-shadow: inset 0 1px 0 var(--rim), 0 3px 10px var(--shade);
+  transition: transform 0.15s, background 0.2s;
+}
+.pill:hover { background: var(--glass-strong); }
+.pill:active { transform: scale(0.96); }
+.pill.accent { background: linear-gradient(180deg, #3a9bff, #0a6fff); color: #fff; border-color: rgba(255, 255, 255, 0.3); }
+
+footer { display: flex; align-items: center; gap: 6px; padding: 0 2px; }
+#msg { margin-left: auto; font-size: 11.5px; color: var(--muted); text-align: right; }
+
+@media (prefers-reduced-motion: reduce) {
+  .seg .thumb, .switch .knob { transition: none; }
+}
+
+/* No slide on first paint. */
+body:not(.ready) .seg .thumb { transition: none; }
