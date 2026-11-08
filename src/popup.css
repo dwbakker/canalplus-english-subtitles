@@ -162,3 +162,8 @@ footer { display: flex; align-items: center; gap: 6px; padding: 0 2px; }
 
 /* No slide on first paint. */
 body:not(.ready) .seg .thumb, body:not(.ready) .switch * { transition: none; }
+
+/* Translator options: same spacing as the rest of the card, so the key field's focus ring
+   doesn't run into the model selector. */
+#claudeOpts, #appleOpts { display: grid; gap: 10px; }
+[hidden] { display: none !important; }
